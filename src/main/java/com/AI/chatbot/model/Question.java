@@ -1,6 +1,9 @@
 package com.AI.chatbot.model;
 
 import java.sql.Date;
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -34,10 +37,11 @@ public class Question {
     private String answer;
 
     //등록일자
-    @Column(nullable = false)
-    private Date reg_date;
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime reg_date;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 }
