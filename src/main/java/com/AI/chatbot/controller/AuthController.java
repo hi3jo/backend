@@ -1,71 +1,85 @@
 package com.AI.chatbot.controller;
 
-import java.util.Optional;
+import com.AI.chatbot.model.User;
+import com.AI.chatbot.service.UserService;
+import com.AI.chatbot.util.JwtUtil;
+
+import lombok.Getter;
+import lombok.Setter;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.AI.chatbot.model.User;
-import com.AI.chatbot.service.UserService;
-
-import lombok.Getter;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Validated @RequestBody User user) {
-        if (userService.userRepository.findByUserid(user.getUserid()).isPresent()) {
+        if (userService.findByUserid(user.getUserid()).isPresent()) {
             return ResponseEntity.badRequest().body("이미 존재합니다!");
         }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         User registeredUser = userService.registerUser(user);
         return ResponseEntity.ok(registeredUser);
     }
 
     @PostMapping("/register-lawyer")
     public ResponseEntity<?> registerLawyer(@Validated @RequestBody User user) {
-        if (userService.userRepository.findByUserid(user.getUserid()).isPresent()) {
+        if (userService.findByUserid(user.getUserid()).isPresent()) {
             return ResponseEntity.badRequest().body("이미 존재합니다!");
         }
         user.setRole("ROLE_LAWYER");
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         User registeredUser = userService.registerUser(user);
         return ResponseEntity.ok(registeredUser);
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserLoginRequest loginRequest) {
-        Optional<User> optionalUser = userService.findByUserid(loginRequest.getUserid());
-        if (optionalUser.isPresent()) {
-            User user = optionalUser.get();
-            if (user.getPassword().equals(loginRequest.getPassword())) {
-                return ResponseEntity.ok(new UserResponse(user.getUserid(), user.getNickname()));
-            }
-        }
-        return ResponseEntity.status(401).body("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(loginRequest.getUserid(), loginRequest.getPassword())
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        UserDetails userDetails = userService.loadUserByUsername(loginRequest.getUserid());
+        String jwt = jwtUtil.generateToken(userDetails);
+        return ResponseEntity.ok(new JwtResponse(jwt));
     }
 
     @Getter
+    @Setter
     static class UserLoginRequest {
         private String userid;
         private String password;
     }
 
     @Getter
-    static class UserResponse {
-        private String userid;
-        private String nickname;
+    static class JwtResponse {
+        private final String token;
 
-        public UserResponse(String userid, String nickname) {
-            this.userid = userid;
-            this.nickname = nickname;
+        public JwtResponse(String token) {
+            this.token = token;
         }
     }
 }
