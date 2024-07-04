@@ -2,10 +2,10 @@ package com.AI.chatbot.config;
 
 import com.AI.chatbot.filter.JwtRequestFilter;
 import com.AI.chatbot.service.UserService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -20,7 +20,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.lang.NonNull;
 
 @Configuration
 @EnableWebSecurity
@@ -38,9 +37,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/register", "/api/auth/register-lawyer", "/api/auth/login", "/api/posts/**").permitAll()
-                .requestMatchers("/api/comments/posts/**").permitAll()
-                .requestMatchers("/api/comments/**").authenticated()
+                .requestMatchers("/api/auth/register", "/api/auth/register-lawyer", "/api/auth/login", "/api/posts/**", "/api/comments/posts/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
