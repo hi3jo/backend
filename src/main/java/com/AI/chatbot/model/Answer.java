@@ -22,25 +22,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-public class Question {
+public class Answer {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    //질문
-    @Column(nullable = false)
-    private String ask;
-
-    //답변
     private String answer;
-
-    //등록일자
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime reg_date;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
 }
