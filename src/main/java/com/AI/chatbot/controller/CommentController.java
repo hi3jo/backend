@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/comments")
@@ -24,8 +25,9 @@ public class CommentController {
     }
 
     @PostMapping("/posts/{postId}")
-    public ResponseEntity<Comment> createComment(@PathVariable("postId") Long postId, @RequestBody String content, Authentication authentication) {
+    public ResponseEntity<Comment> createComment(@PathVariable("postId") Long postId, @RequestBody Map<String, String> requestBody, Authentication authentication) {
         String username = authentication.getName();
+        String content = requestBody.get("content");
         Comment createdComment = commentService.createComment(postId, username, content);
         return ResponseEntity.ok(createdComment);
     }
@@ -38,8 +40,9 @@ public class CommentController {
     }
 
     @PutMapping("/{commentId}")
-    public ResponseEntity<Comment> updateComment(@PathVariable("commentId") Long commentId, @RequestBody String content, Authentication authentication) {
+    public ResponseEntity<Comment> updateComment(@PathVariable("commentId") Long commentId, @RequestBody Map<String, String> requestBody, Authentication authentication) {
         String username = authentication.getName();
+        String content = requestBody.get("content");
         Comment updatedComment = commentService.updateComment(commentId, username, content);
         return ResponseEntity.ok(updatedComment);
     }
