@@ -1,6 +1,5 @@
 package com.AI.chatbot.model;
 
-import java.sql.Date;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -40,7 +39,7 @@ public class Question {
     @Column(updatable = false)
     private LocalDateTime reg_date;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+    // 사용자 아이디
+    @Column(name = "user_id")   //매핑할 데이터베이스 컬럼명 지정
+    private String userId;      //User 객체 대신 사용자 아이디만 저장
 }
