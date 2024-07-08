@@ -8,11 +8,11 @@ import com.AI.chatbot.repository.UserRepository;
 import com.AI.chatbot.service.PostService;
 
 import jakarta.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,7 +27,6 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
-
     @Autowired
     private PostService postService;
 
@@ -44,16 +43,49 @@ public class PostController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Post> getPostById(@PathVariable("id") Long id) {
-        return postService.getPostById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Optional<Post> post = postService.getPostById(id);
+        if (post.isPresent()) {
+            return ResponseEntity.ok(post.get());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/increment-views")
+    public ResponseEntity<Void> incrementViews(@PathVariable("id") Long id) {
+        postService.incrementViews(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/like")
+    public ResponseEntity<Void> likePost(@PathVariable("id") Long id) {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        postService.likePost(id, username);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}/like")
+    public ResponseEntity<Void> unlikePost(@PathVariable("id") Long id) {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        postService.unlikePost(id, username);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/like-status")
+    public ResponseEntity<Map<String, Boolean>> getLikeStatus(@PathVariable("id") Long id) {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        boolean liked = postService.isLikedByUser(id, username);
+        return ResponseEntity.ok(Map.of("liked", liked));
     }
 
     @PostMapping
     public ResponseEntity<Post> createPost(@Valid @RequestBody PostRequest postRequest) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = userDetails.getUsername();
-        
+
         User user = userRepository.findByUserid(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -108,7 +140,7 @@ public class PostController {
             @RequestParam(required = false, name = "sv") String sv) {
         try {
             List<Post> posts;
-            Pageable paging = PageRequest.of(page, size);
+            Pageable paging = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
             Page<Post> pagePosts;
             if (sk != null && sv != null) {
@@ -116,13 +148,42 @@ public class PostController {
                     pagePosts = postRepository.findByTitleContaining(sv, paging);
                 } else if (sk.equals("content")) {
                     pagePosts = postRepository.findByContentContaining(sv, paging);
-                } else if (sk.equals("")) {
-                    pagePosts = postRepository.findByTitleOrContentContaining(sv, paging);
                 } else {
-                    pagePosts = postRepository.findAll(paging);
+                    pagePosts = postRepository.findByTitleOrContentContaining(sv, paging);
                 }
             } else {
                 pagePosts = postRepository.findAll(paging);
+            }
+
+            posts = pagePosts.getContent();
+            Map<String, Object> response = new HashMap<>();
+            response.put("posts", posts);
+            response.put("currentPage", pagePosts.getNumber());
+            response.put("totalItems", pagePosts.getTotalElements());
+            response.put("totalPages", pagePosts.getTotalPages());
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @SuppressWarnings("null")
+    @GetMapping("/popular")
+    public ResponseEntity<Map<String, Object>> getPopularPosts(
+            @RequestParam(defaultValue = "0", name = "page") int page,
+            @RequestParam(defaultValue = "10", name = "size") int size,
+            @RequestParam(required = false, name = "sk") String sk,
+            @RequestParam(required = false, name = "sv") String sv) {
+        try {
+            List<Post> posts;
+            Pageable paging = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+
+            Page<Post> pagePosts;
+            if (sk != null && sv != null) {
+                pagePosts = postRepository.findByPopularPostsBySearch(30, sv, paging);
+            } else {
+                pagePosts = postRepository.findByPopularPosts(30, paging);
             }
 
             posts = pagePosts.getContent();
