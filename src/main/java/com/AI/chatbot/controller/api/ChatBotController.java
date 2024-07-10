@@ -1,37 +1,74 @@
 package com.AI.chatbot.controller.api;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.AI.chatbot.model.Answer;
-import com.AI.chatbot.model.Question;
-import com.AI.chatbot.service.QuestionService;
+import com.AI.chatbot.model.ChatBot;
+import com.AI.chatbot.model.History;
+import com.AI.chatbot.model.User;
+import com.AI.chatbot.service.ChatBotService;
+import com.AI.chatbot.service.UserService;
 
 @RestController
-@RequestMapping("api/chatbot")
+@RequestMapping("/api/chatbot")
 public class ChatBotController {
-    
-    @Autowired
-    private QuestionService questionsService;
 
-    @PostMapping("ask")
-    public Long askQuestion(@RequestBody Question question) {
-        
-        //1. 챗봇에 질문한 내용 저장하기
-System.out.println("1.챗봇 클라이언트로부터 전달받은 질문 : " + question);
-        Long id = questionsService.save(question);
-        return id;
+    @Autowired
+    private ChatBotService chatBotService;
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/create-history")
+    public ResponseEntity<Long> createHistory(@RequestBody History history) {
+        User user = userService.getCurrentUser();
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
+        history.setUser(user);
+        Long id = chatBotService.createHistory(history);
+        return ResponseEntity.ok(id);
     }
 
-    @PostMapping("answer")
-    public Integer saveAnswer(@RequestBody Answer answer) {
-        System.out.println("2. GPT가 생성한 답변 : " + answer);
-        Integer savedId = questionsService.updateAnswer(answer.getId(), answer.getAnswer());
-        
-        System.out.println("저장된 결과 : " + savedId);
-        return savedId;
+    @PostMapping("/ask")
+    public ResponseEntity<Long> askQuestion(@RequestBody ChatBot chatBot) {
+        User user = userService.getCurrentUser();
+        if (user == null) {
+            return ResponseEntity.status(401).build(); // Unauthorized
+        }
+
+        Long historyId = chatBot.getHistory() != null ? chatBot.getHistory().getId() : null;
+        Long id = chatBotService.save(chatBot, user.getId(), historyId);
+        return ResponseEntity.ok(id);
+    }
+
+    @PostMapping("/answer")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Integer> saveAnswer(@RequestBody ChatBot answer) {
+        Integer savedId = chatBotService.updateAnswer(answer.getId(), answer.getAnswer());
+        return ResponseEntity.ok(savedId);
+    }
+
+    @GetMapping("/history")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<History>> getHistory(@RequestParam("userId") Long userId) {
+        List<History> histories = chatBotService.getHistoryByUserId(userId);
+        return ResponseEntity.ok(histories);
+    }
+
+    @GetMapping("/history/questions")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<ChatBot>> getQuestions(@RequestParam("historyId") Long historyId) {
+        List<ChatBot> questions = chatBotService.getQuestionsByHistoryId(historyId);
+        return ResponseEntity.ok(questions);
     }
 }
