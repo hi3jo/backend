@@ -1,6 +1,8 @@
 package com.AI.chatbot.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -37,6 +39,14 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("user")
     private List<Post> posts;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("user-histories")
+    private List<History> histories;
+
+    @OneToMany(mappedBy = "user")
+    @JsonManagedReference("user-chatbots")
+    private List<ChatBot> chatBots;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
