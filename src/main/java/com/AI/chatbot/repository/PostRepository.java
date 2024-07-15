@@ -26,6 +26,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
   @Query("SELECT p FROM Post p WHERE p.likeCount >= :likeCount")
   Page<Post> findByPopularPosts(@Param("likeCount") int likeCount, Pageable pageable);
 
-  @Query("SELECT p FROM Post p WHERE p.likeCount >= :likeCount AND (p.title LIKE %:keyword% OR p.content LIKE %:keyword%)")
+  @Query("SELECT p FROM Post p WHERE p.likeCount >= :likeCount AND (p.title LIKE CONCAT('%', :keyword, '%') OR p.content LIKE CONCAT('%', :keyword, '%'))")
   Page<Post> findByPopularPostsBySearch(@Param("likeCount") int likeCount, @Param("keyword") String keyword, Pageable pageable);
 }
