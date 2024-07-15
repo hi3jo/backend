@@ -1,5 +1,8 @@
 package com.AI.chatbot.model;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -31,5 +34,13 @@ public class Post {
 
     @Column(nullable = false)
     private int likeCount;
+
+    @Column(nullable = false)
+    private LocalDateTime dateCreate;
+
+    @ElementCollection
+    @CollectionTable(name = "post_images", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "image_url")
+    private List<String> imageUrls;
 
 }

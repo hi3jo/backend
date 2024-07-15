@@ -1,7 +1,8 @@
 package com.AI.chatbot.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,6 +15,8 @@ public class PostRequest {
 
     @NotBlank(message = "Content is mandatory")
     private String content;
+
+    private List<String> imageUrls;
 
 }
  
