@@ -2,6 +2,7 @@ package com.AI.chatbot.controller.api;
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +19,7 @@ import com.AI.chatbot.model.User;
 import com.AI.chatbot.service.ChatBotService;
 import com.AI.chatbot.service.UserService;
 
+@Tag(name = "chatbot", description = "챗봇 정보")
 @RestController
 @RequestMapping("/api/chatbot")
 public class ChatBotController {
@@ -51,6 +53,7 @@ public class ChatBotController {
         return ResponseEntity.ok(id);
     }
 
+    // 답변 저장하는 로직
     @PostMapping("/answer")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Integer> saveAnswer(@RequestBody ChatBot answer) {

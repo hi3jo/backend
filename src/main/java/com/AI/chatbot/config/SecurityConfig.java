@@ -34,13 +34,28 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/**", "/api/auth/register", "/api/auth/register-lawyer", "/api/auth/login", "/api/posts/**", "/api/comments/posts/**", "/api/chatbot/**", "/api/posts/pages/**", "/api/uploads/**", "/uploads/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/auth/register",
+                                "/api/auth/register-lawyer",
+                                "/api/auth/login",
+                                "/api/posts/**",
+                                "/api/comments/posts/**",
+                                "/api/chatbot/**",
+                                "/api/posts/pages/**",
+                                "/api/uploads/**",
+                                "/uploads/**",
+                                // Swagger UI 허용 경로 추가
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -64,8 +79,8 @@ public class SecurityConfig {
         AuthenticationManagerBuilder authenticationManagerBuilder =
                 http.getSharedObject(AuthenticationManagerBuilder.class);
         authenticationManagerBuilder
-            .userDetailsService(userService)
-            .passwordEncoder(passwordEncoder());
+                .userDetailsService(userService)
+                .passwordEncoder(passwordEncoder());
         return authenticationManagerBuilder.build();
     }
 
