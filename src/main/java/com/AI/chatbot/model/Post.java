@@ -43,4 +43,6 @@ public class Post {
     @Column(name = "image_url")
     private List<String> imageUrls;
 
+    @Transient // 데이터베이스에 저장되지 않는 필드임을 나타내는 어노테이션
+    private int commentCount;
 }
