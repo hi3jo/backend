@@ -41,7 +41,7 @@ public class ImageAnalysisService {
     private static final Logger logger = LoggerFactory.getLogger(ImageAnalysisService.class);
 
     public String analyzeImage(MultipartFile file) throws IOException {
-        String aiServerUrl = "http://localhost:8000/predict";
+        String aiServerUrl = "http://localhost:8000/api/analysis-image/";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.MULTIPART_FORM_DATA);
