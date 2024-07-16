@@ -1,5 +1,7 @@
 package com.AI.chatbot.repository;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,6 +28,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
   @Query("SELECT p FROM Post p WHERE p.likeCount >= :likeCount")
   Page<Post> findByPopularPosts(@Param("likeCount") int likeCount, Pageable pageable);
 
-  @Query("SELECT p FROM Post p WHERE p.likeCount >= :likeCount AND (p.title LIKE %:keyword% OR p.content LIKE %:keyword%)")
+  @Query("SELECT p FROM Post p WHERE p.likeCount >= :likeCount AND (p.title LIKE CONCAT('%', :keyword, '%') OR p.content LIKE CONCAT('%', :keyword, '%'))")
   Page<Post> findByPopularPostsBySearch(@Param("likeCount") int likeCount, @Param("keyword") String keyword, Pageable pageable);
+
+  @Query("SELECT p FROM Post p ORDER BY p.likeCount DESC")
+  List<Post> findTopPosts(Pageable pageable);
 }
