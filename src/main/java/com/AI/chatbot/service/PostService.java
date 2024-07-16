@@ -1,6 +1,7 @@
 package com.AI.chatbot.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,6 +10,7 @@ import com.AI.chatbot.dto.PostRequest;
 import com.AI.chatbot.model.Like;
 import com.AI.chatbot.model.Post;
 import com.AI.chatbot.model.User;
+import com.AI.chatbot.repository.CommentRepository;
 import com.AI.chatbot.repository.LikeRepository;
 import com.AI.chatbot.repository.PostRepository;
 import com.AI.chatbot.repository.UserRepository;
@@ -28,6 +30,9 @@ public class PostService {
 
     @Autowired
     private LikeRepository likeRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
 
     public List<Post> getAllPosts() {
         List<Post> posts = postRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
@@ -101,5 +106,15 @@ public class PostService {
 
     public void deletePost(Long id) {
         postRepository.deleteById(id);
+    }
+
+    public List<Post> getBestPosts(int limit) {
+        List<Post> posts = postRepository.findTopPosts(PageRequest.of(0, limit));
+        posts.forEach(post -> post.setCommentCount((int) commentRepository.countByPostId(post.getId())));
+        return posts;
+    }
+
+    public int getCommentCount(Long postId) {
+        return commentRepository.findByPostId(postId).size();
     }
 }

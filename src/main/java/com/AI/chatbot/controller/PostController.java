@@ -38,14 +38,19 @@ public class PostController {
 
     @GetMapping
     public List<Post> getAllPosts() {
-        return postService.getAllPosts();
+        List<Post> posts = postService.getAllPosts();
+        posts.forEach(post -> post.setCommentCount(postService.getCommentCount(post.getId())));
+        return posts;
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Post> getPostById(@PathVariable("id") Long id) {
         Optional<Post> post = postService.getPostById(id);
         if (post.isPresent()) {
-            return ResponseEntity.ok(post.get());
+            Post p = post.get();
+            int commentCount = postService.getCommentCount(id);
+            p.setCommentCount(commentCount);
+            return ResponseEntity.ok(p);
         } else {
             return ResponseEntity.notFound().build();
         }
@@ -156,6 +161,7 @@ public class PostController {
             }
 
             posts = pagePosts.getContent();
+            posts.forEach(post -> post.setCommentCount(postService.getCommentCount(post.getId())));
             Map<String, Object> response = new HashMap<>();
             response.put("posts", posts);
             response.put("currentPage", pagePosts.getNumber());
@@ -197,5 +203,11 @@ public class PostController {
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @GetMapping("/best")
+    public ResponseEntity<List<Post>> getBestPosts(@RequestParam(name = "limit", defaultValue = "5") int limit) {
+        List<Post> bestPosts = postService.getBestPosts(limit);
+        return ResponseEntity.ok(bestPosts);
     }
 }
