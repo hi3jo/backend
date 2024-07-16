@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.AI.chatbot.model.ImageAnalysis;
@@ -23,20 +24,21 @@ public class ImageAnalysisController {
     private static final Logger logger = LoggerFactory.getLogger(ImageAnalysisController.class);
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadImageAnalysis(@RequestParam("userId") String userId,
-                                                      @RequestParam("file") MultipartFile file,
-                                                      @RequestParam("ask") String ask) {
+    public ResponseEntity<String> uploadImageAnalysis(@RequestParam("file") MultipartFile file,
+                                                      Authentication authentication) {
         try {
-            logger.info("Received upload request: userId={}, ask={}", userId, ask);
+            String userId = authentication.getName(); // JWT 토큰에서 사용자 ID를 가져옵니다.
+            logger.info("Received upload request: userId={}", userId);
             String aiAnswer = imageAnalysisService.analyzeImage(file);
             logger.info("AI answer received: {}", aiAnswer);
-            imageAnalysisService.saveImageAnalysis(userId, file, ask, aiAnswer);
+            imageAnalysisService.saveImageAnalysis(userId, file, aiAnswer);
             return ResponseEntity.ok(aiAnswer);
         } catch (IOException e) {
-            logger.error("Failed to upload question", e);
-            return ResponseEntity.status(500).body("Failed to upload question: " + e.getMessage());
+            logger.error("Failed to upload image", e);
+            return ResponseEntity.status(500).body("Failed to upload image: " + e.getMessage());
         } catch (Exception e) {
             logger.error("Unexpected error occurred", e);
+            logger.error("Exception stack trace: ", e); // 스택 트레이스를 로그에 추가
             return ResponseEntity.status(500).body("Unexpected error occurred: " + e.getMessage());
         }
     }

@@ -15,8 +15,8 @@ public class ImageAnalysis {
 
     private String fileName;
     private String filePath;
-    private String ask;
     private String answer;
+    private String fileHash;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

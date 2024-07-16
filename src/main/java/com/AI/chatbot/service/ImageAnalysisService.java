@@ -1,18 +1,14 @@
 package com.AI.chatbot.service;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-
+import com.AI.chatbot.model.ImageAnalysis;
+import com.AI.chatbot.model.User;
+import com.AI.chatbot.repository.ImageAnalysisRepository;
+import com.AI.chatbot.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -20,10 +16,14 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.AI.chatbot.model.ImageAnalysis;
-import com.AI.chatbot.model.User;
-import com.AI.chatbot.repository.ImageAnalysisRepository;
-import com.AI.chatbot.repository.UserRepository;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +44,7 @@ public class ImageAnalysisService {
         String aiServerUrl = "http://localhost:8000/predict";
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.setContentType(org.springframework.http.MediaType.MULTIPART_FORM_DATA);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new ByteArrayResource(file.getBytes()) {
@@ -62,7 +62,7 @@ public class ImageAnalysisService {
                 aiServerUrl, 
                 HttpMethod.POST, 
                 requestEntity, 
-                new ParameterizedTypeReference<Map<String, Object>>() {}
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
 
             Map<String, Object> responseBody = response.getBody();
@@ -76,21 +76,38 @@ public class ImageAnalysisService {
             }
         } catch (Exception e) {
             logger.error("AI 서버와 통신 중 오류 발생: {}", e.getMessage());
+            logger.error("Exception stack trace: ", e); // 스택 트레이스를 로그에 추가
             throw new IOException("Error occurred while communicating with AI server", e);
         }
     }
 
-    public ImageAnalysis saveImageAnalysis(String userId, MultipartFile file, String ask, String answer) throws IOException {
-        logger.info("Saving image analysis: userId={}, ask={}, answer={}", userId, ask, answer);
-        
+    public ImageAnalysis saveImageAnalysis(String userId, MultipartFile file, String answer) throws IOException {
+        logger.info("Saving image analysis: userId={}, answer={}", userId, answer);
+
         User user = userRepository.findByUserid(userId).orElseThrow(() -> {
             logger.error("User not found: userId={}", userId);
             return new RuntimeException("User not found");
         });
 
-        String fileName = file.getOriginalFilename();
-        Path filePath = root.resolve(fileName);
-        
+        String originalFileName = file.getOriginalFilename();
+        String uniqueFileName = System.currentTimeMillis() + "_" + UUID.randomUUID().toString() + "_" + originalFileName; // 타임스탬프와 UUID를 파일 이름에 추가
+        Path filePath = root.resolve(uniqueFileName);
+
+        logger.info("Original file name: {}", originalFileName);
+        logger.info("Unique file name: {}", uniqueFileName);
+        logger.info("File path: {}", filePath.toString());
+
+        // 파일 저장 경로 존재 여부 확인 및 디렉토리 생성
+        if (!Files.exists(root)) {
+            try {
+                Files.createDirectories(root);
+                logger.info("Created directory for file uploads: {}", root.toString());
+            } catch (IOException e) {
+                logger.error("Failed to create directories: {}", e.getMessage());
+                throw e;
+            }
+        }
+
         try {
             Files.copy(file.getInputStream(), filePath);
             logger.info("File saved to disk: {}", filePath.toString());
@@ -100,9 +117,8 @@ public class ImageAnalysisService {
         }
 
         ImageAnalysis imageAnalysis = new ImageAnalysis();
-        imageAnalysis.setFileName(fileName);
+        imageAnalysis.setFileName(uniqueFileName);
         imageAnalysis.setFilePath(filePath.toString());
-        imageAnalysis.setAsk(ask);
         imageAnalysis.setAnswer(answer);
         imageAnalysis.setUser(user);
 

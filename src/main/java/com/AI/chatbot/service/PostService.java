@@ -13,6 +13,7 @@ import com.AI.chatbot.repository.LikeRepository;
 import com.AI.chatbot.repository.PostRepository;
 import com.AI.chatbot.repository.UserRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -86,6 +87,8 @@ public class PostService {
         post.setTitle(postRequest.getTitle());
         post.setContent(postRequest.getContent());
         post.setUser(user);
+        post.setImageUrls(postRequest.getImageUrls());
+        post.setDateCreate(LocalDateTime.now());
         return postRepository.save(post);
     }
 
