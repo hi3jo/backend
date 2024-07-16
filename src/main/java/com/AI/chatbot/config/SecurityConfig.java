@@ -37,7 +37,23 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/**", "/api/auth/register", "/api/auth/register-lawyer", "/api/auth/login", "/api/posts/**", "/api/comments/posts/**", "/api/chatbot/**", "/api/posts/pages/**", "/api/uploads/**", "/uploads/**", "/api/posts/best",  "/api/imageAnalysis/upload").permitAll()
+                .requestMatchers("/api/auth/**",
+                        "/api/auth/register",
+                        "/api/auth/register-lawyer",
+                        "/api/auth/login",
+                        "/api/posts/**",
+                        "/api/comments/posts/**",
+                        "/api/chatbot/**",
+                        "/api/posts/pages/**",
+                        "/api/uploads/**",
+                        "/uploads/**",
+                        "/api/posts/best",
+                        "/api/imageAnalysis/upload",
+                        // Swagger UI 허용 경로 추가
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
