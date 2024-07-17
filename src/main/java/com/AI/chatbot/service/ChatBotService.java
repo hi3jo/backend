@@ -98,6 +98,7 @@ public class ChatBotService {
     }
 
     // 답변 저장
+// 답변 저장
     public Integer updateAnswer(String ask, String answer, Long userId, Long historyId) {
         try {
             // 답변 업데이트 시도 로그를 남김
@@ -127,12 +128,24 @@ public class ChatBotService {
             // 히스토리 정보 가져오기 성공 로그를 남김
             logger.debug("기존 히스토리를 성공적으로 가져왔습니다. 히스토리 ID: {}", history.getId());
 
-            // 새로운 ChatBot 객체를 생성하고 정보 설정
-            ChatBot chatBot = new ChatBot();
-            chatBot.setHistory(history);
-            chatBot.setUser(user);
-            chatBot.setAsk(ask);  // 질문 설정
-            chatBot.setAnswer(answer); // 답변 설정
+            // 기존의 질문을 가진 ChatBot 엔티티를 검색
+            Optional<ChatBot> optionalChatBot = chatBotRepository.findByAskAndHistoryId(ask, historyId);
+            ChatBot chatBot;
+
+            if (optionalChatBot.isPresent()) {
+                // 기존 질문에 대한 ChatBot 엔티티가 존재하면 해당 엔티티를 가져와 답변을 업데이트
+                chatBot = optionalChatBot.get();
+                chatBot.setAnswer(answer);
+                logger.debug("기존 질문에 대한 답변 업데이트. ChatBot ID: {}", chatBot.getId());
+            } else {
+                // 기존 질문에 대한 ChatBot 엔티티가 없으면 새로운 ChatBot 엔티티를 생성
+                chatBot = new ChatBot();
+                chatBot.setHistory(history);
+                chatBot.setUser(user);
+                chatBot.setAsk(ask);  // 질문 설정
+                chatBot.setAnswer(answer);  // 답변 설정
+                logger.debug("새로운 질문과 답변 저장. ChatBot ID: {}", chatBot.getId());
+            }
 
             // ChatBot 객체를 저장하고 저장된 객체를 반환 받음
             ChatBot savedChatBot = chatBotRepository.save(chatBot);
@@ -141,7 +154,7 @@ public class ChatBotService {
 
             // 히스토리의 마지막 채팅 날짜를 현재 시간으로 갱신
             history.setLastChatBotDate(LocalDateTime.now());
-            historyRepository.save(history); // 히스토리 객체 저장
+            historyRepository.save(history);  // 히스토리 객체 저장
             // 히스토리의 마지막 채팅 날짜 갱신 성공 로그를 남김
             logger.debug("히스토리의 마지막 채팅 날짜를 갱신했습니다. 히스토리 ID: {}", history.getId());
 
