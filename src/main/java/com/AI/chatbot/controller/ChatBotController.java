@@ -62,26 +62,35 @@ public class ChatBotController {
     @PostMapping("/answer")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Integer> saveAnswer(@RequestBody ChatBot answer) {
+        // 현재 로그인된 사용자를 가져옴
         User user = userService.getCurrentUser();
+        // 사용자가 null인 경우(인증되지 않은 사용자) 에러 로그를 남기고 401 Unauthorized 상태 반환
         if (user == null) {
             logger.error("인증되지 않은 접근 시도입니다.");
             return ResponseEntity.status(401).build(); // Unauthorized
         }
 
+        // 전송된 ChatBot 객체의 History 객체의 ID를 가져옴. 없으면 null
         Long historyId = answer.getHistory() != null ? answer.getHistory().getId() : null;
+        // historyId가 null인 경우 에러 로그를 남기고 400 Bad Request 상태 반환
         if (historyId == null) {
             logger.error("전송된 ChatBot 객체에 유효한 History 객체가 포함되어 있지 않습니다.");
             return ResponseEntity.status(400).body(null); // Bad Request
         }
 
+        // 답변 저장 요청 로그를 남김
         logger.info("답변 저장 요청 받음. historyId: {} 및 답변: {}", historyId, answer.getAnswer());
 
+        // 답변을 저장하고 저장된 ID를 반환 받음
         Integer savedId = chatBotService.updateAnswer(answer.getAsk(), answer.getAnswer(), user.getId(), historyId);
+        // 저장된 ID가 null이 아닌 경우 저장 성공 로그를 남김
         if (savedId != null) {
             logger.info("답변 저장 성공 answer id: {}", savedId);
         } else {
+            // 저장된 ID가 null인 경우 저장 실패 로그를 남김
             logger.error("답변 저장 실패 answer id: {}", answer.getId());
         }
+        // 저장된 ID를 OK 상태로 반환
         return ResponseEntity.ok(savedId);
     }
 
