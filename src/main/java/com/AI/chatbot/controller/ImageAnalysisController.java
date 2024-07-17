@@ -1,6 +1,7 @@
 package com.AI.chatbot.controller;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -29,10 +30,13 @@ public class ImageAnalysisController {
         try {
             String userId = authentication.getName(); // JWT 토큰에서 사용자 ID를 가져옵니다.
             logger.info("Received upload request: userId={}", userId);
-            String aiAnswer = imageAnalysisService.analyzeImage(file);
-            logger.info("AI answer received: {}", aiAnswer);
-            imageAnalysisService.saveImageAnalysis(userId, file, aiAnswer);
-            return ResponseEntity.ok(aiAnswer);
+            Map<String, Object> aiResponse = imageAnalysisService.analyzeImage(file);
+            logger.info("AI answer received: {}", aiResponse);
+            ImageAnalysis imageAnalysis = imageAnalysisService.saveImageAnalysis(userId, file, aiResponse);
+            return ResponseEntity.ok(String.format("분석결과: %s, 증거채택여부: %s, 시간: %s",
+                    imageAnalysis.getAnswer(),
+                    imageAnalysis.isPossible() ? "True" : "False",
+                    imageAnalysis.getDatetime()));
         } catch (IOException e) {
             logger.error("Failed to upload image", e);
             return ResponseEntity.status(500).body("Failed to upload image: " + e.getMessage());
