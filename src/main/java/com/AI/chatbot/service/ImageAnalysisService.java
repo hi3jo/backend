@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ public class ImageAnalysisService {
     private final Path root = Paths.get("uploads");
     private static final Logger logger = LoggerFactory.getLogger(ImageAnalysisService.class);
 
-    public String analyzeImage(MultipartFile file) throws IOException {
+    public Map<String, Object> analyzeImage(MultipartFile file) throws IOException {
         String aiServerUrl = "http://localhost:8000/api/analysis-image/";
 
         HttpHeaders headers = new HttpHeaders();
@@ -66,10 +66,9 @@ public class ImageAnalysisService {
             );
 
             Map<String, Object> responseBody = response.getBody();
-            if (responseBody != null && responseBody.containsKey("answer")) {
-                String aiAnswer = (String) responseBody.get("answer");
-                logger.info("Received AI answer: {}", aiAnswer);
-                return aiAnswer;
+            if (responseBody != null && responseBody.containsKey("answer") && responseBody.containsKey("isPossible")) {
+                logger.info("Received AI response: {}", responseBody);
+                return responseBody;
             } else {
                 logger.error("AI 서버 응답이 예상한 형식이 아님: {}", responseBody);
                 throw new IOException("Failed to get a valid response from AI server.");
@@ -81,8 +80,8 @@ public class ImageAnalysisService {
         }
     }
 
-    public ImageAnalysis saveImageAnalysis(String userId, MultipartFile file, String answer) throws IOException {
-        logger.info("Saving image analysis: userId={}, answer={}", userId, answer);
+    public ImageAnalysis saveImageAnalysis(String userId, MultipartFile file, Map<String, Object> aiResponse) throws IOException {
+        logger.info("Saving image analysis: userId={}, answer={}", userId, aiResponse.get("answer"));
 
         User user = userRepository.findByUserid(userId).orElseThrow(() -> {
             logger.error("User not found: userId={}", userId);
@@ -119,8 +118,10 @@ public class ImageAnalysisService {
         ImageAnalysis imageAnalysis = new ImageAnalysis();
         imageAnalysis.setFileName(uniqueFileName);
         imageAnalysis.setFilePath(filePath.toString());
-        imageAnalysis.setAnswer(answer);
+        imageAnalysis.setAnswer((String) aiResponse.get("answer"));
         imageAnalysis.setUser(user);
+        imageAnalysis.setIsPossible((Boolean) aiResponse.get("isPossible"));
+        imageAnalysis.setDatetime(LocalDateTime.now());
 
         try {
             ImageAnalysis savedImageAnalysis = imageAnalysisRepository.save(imageAnalysis);
