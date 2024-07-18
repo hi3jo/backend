@@ -19,6 +19,7 @@ public class S3Config {
    @Value("${cloud.aws.region.static}")
    private String region;
 
+   // AWS S3 자격 증명 지정
    @Bean
    public AmazonS3Client amazonS3Client() {
       
