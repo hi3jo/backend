@@ -2,9 +2,8 @@ package com.AI.chatbot.controller;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,20 +62,30 @@ public class ImgUploadController {
             String fileExtension = StringUtils.getFilenameExtension(originalFilename);
             String newFilename   = UUID.randomUUID().toString() + "." + fileExtension;
 
-            // 파일 저장 경로 설정
-            /*Path path = Paths.get(uploadDir + File.separator + newFilename);
+            /*
+                // 프로젝트 내 파일 저장 경로 설정    
+                Path path = Paths.get(uploadDir + File.separator + newFilename);
 
-            // 파일 저장
-            Files.write(path, file.getBytes());
+                // 파일 저장
+                Files.write(path, file.getBytes());
 
-            // 파일 URL 반환 (필요 시 URL 형식 조정)
-            return ResponseEntity.ok("/uploads/" + newFilename);*/
+                // 파일 URL 반환 (필요 시 URL 형식 조정)
+                return ResponseEntity.ok("/uploads/" + newFilename);
+            */
 
-            String fileUrl= "https://" + bucket + "/uploads" + newFilename;
-            ObjectMetadata metadata= new ObjectMetadata();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+		    Date date    = new Date();
+		    String today = sdf.format(date);
+                
+            String folderPath = "community/" + today + "/";
+            String fileUrl    = "https://" + bucket + ".s3.amazonaws.com/" + folderPath + newFilename;
+
+            ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentType(file.getContentType());
             metadata.setContentLength(file.getSize());
-            amazonS3Client.putObject(bucket,newFilename,file.getInputStream(),metadata);
+            amazonS3Client.putObject(bucket, folderPath + newFilename, file.getInputStream(), metadata);
+            
+            System.out.println("file url : "+ fileUrl);
             return ResponseEntity.ok(fileUrl);
 
         } catch (IOException e) {
