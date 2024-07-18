@@ -36,6 +36,7 @@ public class ChatBot {
     private String ask;
 
     //답변
+    @Column(columnDefinition = "TEXT")
     private String answer;
 
     //등록일자
