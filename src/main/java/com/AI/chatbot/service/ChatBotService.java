@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,48 +19,63 @@ import com.AI.chatbot.repository.UserRepository;
 
 @Service
 public class ChatBotService {
-    
-    @Autowired
-    private ChatbotRepository chatbotRepository;
 
-    @Autowired
-    private HistoryRepository historyRepository;
+    private static final Logger logger = LoggerFactory.getLogger(ChatBotService.class);
 
-    @Autowired
-    private UserRepository userRepository;
+    private final ChatbotRepository chatBotRepository;
+    private final HistoryRepository historyRepository;
+    private final UserRepository userRepository;
 
+    public ChatBotService(ChatbotRepository chatBotRepository, HistoryRepository historyRepository, UserRepository userRepository) {
+        this.chatBotRepository = chatBotRepository;
+        this.historyRepository = historyRepository;
+        this.userRepository = userRepository;
+    }
+
+    // 질문 저장
     @Transactional
     public Long save(ChatBot chatBot, Long userId, Long historyId) {
+        logger.debug("질문 저장 시도 중. 사용자 ID: {}, 히스토리 ID: {}", userId, historyId);
+
         Optional<User> optionalUser = userRepository.findById(userId);
         if (!optionalUser.isPresent()) {
+            logger.error("유효하지 않은 사용자 ID: {}", userId);
             throw new IllegalArgumentException("Invalid userId: " + userId);
         }
         User user = optionalUser.get();
+        logger.debug("사용자 정보를 성공적으로 가져왔습니다. 사용자 ID: {}", user.getId());
 
         History history;
         if (historyId != null) {
             Optional<History> optionalHistory = historyRepository.findById(historyId);
             if (optionalHistory.isPresent()) {
                 history = optionalHistory.get();
+                logger.debug("기존 히스토리를 성공적으로 가져왔습니다. 히스토리 ID: {}", history.getId());
             } else {
                 history = new History();
                 history.setUser(user);
                 history.setFirstChatBotAsk(chatBot.getAsk());
                 historyRepository.save(history);
+                logger.debug("새로운 히스토리를 생성했습니다. 히스토리 ID: {}", history.getId());
             }
         } else {
             history = new History();
             history.setUser(user);
             history.setFirstChatBotAsk(chatBot.getAsk());
             historyRepository.save(history);
+            logger.debug("새로운 히스토리를 생성했습니다. 히스토리 ID: {}", history.getId());
         }
 
         chatBot.setHistory(history);
         chatBot.setUser(user);
+        logger.debug("ChatBot 엔티티에 사용자와 히스토리를 설정했습니다.");
 
-        ChatBot savedChatBot = chatbotRepository.save(chatBot);
+        ChatBot savedChatBot = chatBotRepository.save(chatBot);
+        logger.debug("ChatBot 엔티티를 성공적으로 저장했습니다. ChatBot ID: {}", savedChatBot.getId());
+
         history.setLastChatBotDate(LocalDateTime.now());
         historyRepository.save(history);
+        logger.debug("히스토리의 마지막 채팅 날짜를 갱신했습니다. 히스토리 ID: {}", history.getId());
 
         return savedChatBot.getId();
     }
@@ -80,9 +97,74 @@ public class ChatBotService {
         return history.getId();
     }
 
-    @Transactional
-    public Integer updateAnswer(Long id, String answer) {
-        return chatbotRepository.updateAnswer(id, answer);
+    // 답변 저장
+// 답변 저장
+    public Integer updateAnswer(String ask, String answer, Long userId, Long historyId) {
+        try {
+            // 답변 업데이트 시도 로그를 남김
+            logger.info("답변 업데이트 시도 중. 사용자 ID: {}, 히스토리 ID: {}", userId, historyId);
+
+            // 사용자 ID로 사용자 정보를 가져옴
+            Optional<User> optionalUser = userRepository.findById(userId);
+            // 사용자가 존재하지 않으면 에러 로그를 남기고 IllegalArgumentException 예외를 던짐
+            if (!optionalUser.isPresent()) {
+                logger.error("유효하지 않은 사용자 ID: {}", userId);
+                throw new IllegalArgumentException("Invalid userId: " + userId);
+            }
+            // 사용자 정보를 가져옴
+            User user = optionalUser.get();
+            // 사용자 정보 가져오기 성공 로그를 남김
+            logger.debug("사용자 정보를 성공적으로 가져왔습니다. 사용자 ID: {}", user.getId());
+
+            // 히스토리 ID로 히스토리 정보를 가져옴
+            Optional<History> optionalHistory = historyRepository.findById(historyId);
+            // 히스토리가 존재하지 않으면 에러 로그를 남기고 null을 반환
+            if (!optionalHistory.isPresent()) {
+                logger.error("유효하지 않은 히스토리 ID: {}", historyId);
+                return null;
+            }
+            // 히스토리 정보를 가져옴
+            History history = optionalHistory.get();
+            // 히스토리 정보 가져오기 성공 로그를 남김
+            logger.debug("기존 히스토리를 성공적으로 가져왔습니다. 히스토리 ID: {}", history.getId());
+
+            // 기존의 질문을 가진 ChatBot 엔티티를 검색
+            Optional<ChatBot> optionalChatBot = chatBotRepository.findByAskAndHistoryId(ask, historyId);
+            ChatBot chatBot;
+
+            if (optionalChatBot.isPresent()) {
+                // 기존 질문에 대한 ChatBot 엔티티가 존재하면 해당 엔티티를 가져와 답변을 업데이트
+                chatBot = optionalChatBot.get();
+                chatBot.setAnswer(answer);
+                logger.debug("기존 질문에 대한 답변 업데이트. ChatBot ID: {}", chatBot.getId());
+            } else {
+                // 기존 질문에 대한 ChatBot 엔티티가 없으면 새로운 ChatBot 엔티티를 생성
+                chatBot = new ChatBot();
+                chatBot.setHistory(history);
+                chatBot.setUser(user);
+                chatBot.setAsk(ask);  // 질문 설정
+                chatBot.setAnswer(answer);  // 답변 설정
+                logger.debug("새로운 질문과 답변 저장. ChatBot ID: {}", chatBot.getId());
+            }
+
+            // ChatBot 객체를 저장하고 저장된 객체를 반환 받음
+            ChatBot savedChatBot = chatBotRepository.save(chatBot);
+            // ChatBot 엔티티 저장 성공 로그를 남김
+            logger.debug("ChatBot 엔티티를 성공적으로 저장했습니다. ChatBot ID: {}", savedChatBot.getId());
+
+            // 히스토리의 마지막 채팅 날짜를 현재 시간으로 갱신
+            history.setLastChatBotDate(LocalDateTime.now());
+            historyRepository.save(history);  // 히스토리 객체 저장
+            // 히스토리의 마지막 채팅 날짜 갱신 성공 로그를 남김
+            logger.debug("히스토리의 마지막 채팅 날짜를 갱신했습니다. 히스토리 ID: {}", history.getId());
+
+            // 저장된 ChatBot 객체의 ID를 반환
+            return savedChatBot.getId().intValue();
+        } catch (Exception e) {
+            // 예외 발생 시 에러 로그를 남기고 null 반환
+            logger.error("답변 업데이트 중 오류 발생.", e);
+            return null;
+        }
     }
 
     public History getHistoryById(Long historyId) {
@@ -94,7 +176,7 @@ public class ChatBotService {
     }
     
     public List<ChatBot> getQuestionsByHistoryId(Long historyId) {
-        return chatbotRepository.findByHistoryId(historyId);
+        return chatBotRepository.findByHistoryId(historyId);
     }
 
     public Long createHistory(History history) {
