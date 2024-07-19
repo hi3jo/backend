@@ -49,6 +49,7 @@ public class SecurityConfig {
                         "/uploads/**",
                         "/api/posts/best",
                         "/api/imageAnalysis/upload",
+                        "/api/textImgAna/upload",
                         // Swagger UI 허용 경로 추가
                         "/swagger-ui.html",
                         "/swagger-ui/**",
