@@ -6,6 +6,7 @@ import com.AI.chatbot.model.User;
 import com.AI.chatbot.repository.PostRepository;
 import com.AI.chatbot.repository.UserRepository;
 import com.AI.chatbot.service.PostService;
+import com.AI.chatbot.util.S3Utils;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,9 @@ public class PostController {
 
     @Autowired
     private PostRepository postRepository;
+
+    @Autowired
+    private S3Utils s3utils;
 
     @GetMapping
     public List<Post> getAllPosts() {
@@ -118,7 +122,8 @@ public class PostController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> deletePost(   @PathVariable("id") Long id
+                                            , @RequestParam(value = "imageUrls", required = false) List<String> imageUrls) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = userDetails.getUsername();
 
@@ -130,6 +135,13 @@ public class PostController {
                 return ResponseEntity.status(403).build();
             }
             postService.deletePost(id);
+
+            //S3 Bucket에서 이미지 삭제해야 함.
+            if (imageUrls != null) {
+                for (String imageUrl : imageUrls) {
+                    s3utils.deleteImageFromS3(imageUrl);
+                }
+            }
             return ResponseEntity.noContent().build();
         } else {
             return ResponseEntity.notFound().build();
