@@ -114,7 +114,23 @@ public class PostController {
             if (!post.getUser().getUserid().equals(username)) {
                 return ResponseEntity.status(403).build();
             }
+
+            //기존 url
+            String imgUrls[] = postService.getImgLists(id);
+            //S3 Bucket에서 이미지 삭제해야 함.
+            /* if (imgUrls != null) {
+                for (String imageUrl : imgUrls) {
+                    s3utils.deleteImageFromS3(imageUrl);
+                }
+            } */
+
+            //제목과 컨텐츠만 업데이트
             Post updatedPost = postService.updatePost(id, postRequest);
+            
+            //새로운 이미지 URL 저장
+            /* if (postRequest.getImageUrls() != null)
+                updatedPost.setImageUrls(postRequest.getImageUrls()); */
+
             return ResponseEntity.ok(updatedPost);
         } else {
             return ResponseEntity.notFound().build();
