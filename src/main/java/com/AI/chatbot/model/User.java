@@ -49,9 +49,11 @@ public class User implements UserDetails {
     private List<ChatBot> chatBots;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private LawyerProfile lawyerProfile;
 
     @OneToMany(mappedBy = "lawyer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<LawyerAvailableTime> availableTimes;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)

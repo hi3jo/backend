@@ -6,6 +6,10 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 
 @Getter
 @Setter
@@ -31,13 +35,12 @@ public class LawyerAvailableTime {
     @Column(nullable = false)
     private boolean inPersonConsultation;
 
-    @Column(nullable = false)
-    private double phoneConsultationPrice;
-
-    @Column(nullable = false)
-    private double inPersonConsultationPrice;
-
     @ManyToOne
     @JoinColumn(name = "lawyer_id")
+    @JsonBackReference
     private User lawyer;
+
+    @OneToMany(mappedBy = "availableTime")
+    @JsonBackReference
+    private List<Reservation> reservations;
 }
