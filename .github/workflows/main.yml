@@ -52,8 +52,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
         with:
-          context: .  # 프로젝트 구조에 맞게 설정
-          file: ./hi3jo/backend/Dockerfile  # Dockerfile의 위치를 정확히 지정
+          context: ./backend  # 프로젝트 구조에 맞게 설정
+          file: ./backend/Dockerfile  # Dockerfile의 위치를 정확히 지정
           push: true
           tags: ${{ env.DOCKER_IMAGE }}:latest
 
