@@ -77,7 +77,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.HI3JO_TOKEN }}
 
-      # Stop and remove existing container, then run the new one
+      # Stop and remove existing container, then run the new oneE
       - name: Docker run
         run: |
           docker stop ${{ env.NAME }} || true
