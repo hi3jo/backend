@@ -7,11 +7,13 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Getter
 @Setter
 @Entity
+@JsonIgnoreProperties({"availableTime", "lawyer"})
 public class Reservation {
 
     @Id
@@ -28,7 +30,7 @@ public class Reservation {
 
     @ManyToOne
     @JoinColumn(name = "available_time_id")
-    @JsonManagedReference
+    @JsonBackReference
     private LawyerAvailableTime availableTime;
 
     @Column(nullable = false)

@@ -9,11 +9,14 @@ import java.time.LocalTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 
 @Getter
 @Setter
 @Entity
+@JsonIgnoreProperties({"reservations", "lawyer"})
 public class LawyerAvailableTime {
 
     @Id
@@ -41,6 +44,6 @@ public class LawyerAvailableTime {
     private User lawyer;
 
     @OneToMany(mappedBy = "availableTime")
-    @JsonBackReference
+    @JsonManagedReference
     private List<Reservation> reservations;
 }
