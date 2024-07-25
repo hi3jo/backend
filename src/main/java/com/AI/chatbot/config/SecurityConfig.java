@@ -53,7 +53,9 @@ public class SecurityConfig {
                         // Swagger UI 허용 경로 추가
                         "/swagger-ui.html",
                         "/swagger-ui/**",
-                        "/v3/api-docs/**"
+                        "/v3/api-docs/**",
+                        "/api/lawyer/**",
+                        "/api/reservation"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
