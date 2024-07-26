@@ -17,7 +17,10 @@ public class TextImgAna {
 
     private String fileName;
     private String filePath;
+
+    @Column(columnDefinition = "TEXT")
     private String answer;
+    
     private String fileHash;
     private boolean isPossible;
     private LocalDateTime datetime;

@@ -30,26 +30,21 @@ public class TextImgAnaController {
         try {
             // JWT 토큰에서 사용자 ID를 가져옵니다.
             String userId = authentication.getName();
-            logger.info("Received upload request: userId={}", userId);
-            
+
             // AI 서버에 파일을 전송하여 분석 결과를 받습니다.
             Map<String, Object> aiResponse = textImgAnaService.analyzeText(file);
-            logger.info("AI answer received: {}", aiResponse);
-            
+
             // 분석 결과를 데이터베이스에 저장합니다.
             TextImgAna textImgAna = textImgAnaService.saveTextImgAna(userId, file, aiResponse);
-            
+
             // 저장된 결과를 문자열 형식으로 반환합니다.
             return ResponseEntity.ok(String.format("분석결과: %s, 증거채택여부: %s, 시간: %s",
                     textImgAna.getAnswer(),
                     textImgAna.isPossible() ? "True" : "False",
                     textImgAna.getDatetime()));
         } catch (IOException e) {
-            logger.error("Failed to upload image or process text", e);
             return ResponseEntity.status(500).body("Failed to upload image or process text: " + e.getMessage());
         } catch (Exception e) {
-            logger.error("Unexpected error occurred", e);
-            logger.error("Exception stack trace: ", e);
             return ResponseEntity.status(500).body("Unexpected error occurred: " + e.getMessage());
         }
     }
