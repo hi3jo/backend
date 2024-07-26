@@ -1,9 +1,9 @@
 package com.AI.chatbot.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,7 +54,7 @@ public class User implements UserDetails {
     private LawyerProfile lawyerProfile;
 
     @OneToMany(mappedBy = "lawyer", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonBackReference("user-availableTimes")
     private List<LawyerAvailableTime> availableTimes;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -62,6 +62,11 @@ public class User implements UserDetails {
     private List<Reservation> reservations;
 
     @OneToMany(mappedBy = "lawyer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonBackReference("lawyer-reviews")
+    private List<Review> lawyerReviews;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonBackReference("user-reviews")
     private List<Review> reviews;
 
     @Override
