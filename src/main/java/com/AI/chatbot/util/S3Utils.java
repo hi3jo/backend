@@ -3,6 +3,7 @@ package com.AI.chatbot.util;
 import java.io.ByteArrayInputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.AI.chatbot.exception.AppException;
 import com.AI.chatbot.exception.AppException.ErrorType;
+import com.AI.chatbot.model.Post;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -38,12 +40,12 @@ public class S3Utils {
     }
 
     // 다중 파일 업로드
-    public void fileUpload(List<MultipartFile> files) throws Exception {
+    public void fileUpload(List<MultipartFile> files, Post post) throws Exception {
         
         if(amazonS3 != null) {
 
             ObjectMetadata metadata = null;
-            
+            List<String> uptImgList = new ArrayList<>(); // ArrayList 생성
             for (MultipartFile file : files) {
                 
                 String originalFilename = file.getOriginalFilename();
@@ -65,7 +67,11 @@ System.out.println("file url : "+ fileUrl);
                 metadata.setContentType(file.getContentType());
                 metadata.setContentLength(file.getSize());
                 amazonS3.putObject(bucket, folderPath + newFilename, file.getInputStream(), metadata);
+                
+                uptImgList.add(fileUrl);
             }
+            
+            post.setImageUrls(uptImgList);
         } else {
             
             throw new AppException(ErrorType.aws_credentials_fail, null);

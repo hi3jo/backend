@@ -119,7 +119,9 @@ public class PostController {
 
     //게시글 업데이트
     @PutMapping("/{id}")
-    public ResponseEntity<Post> updatePost(@PathVariable("id") Long id, @Valid @RequestBody PostRequest postRequest) {
+  //public ResponseEntity<Post> updatePost(@PathVariable("id") Long id, @Valid @RequestBody PostRequest postRequest) {
+    public ResponseEntity<Post> updatePost(@PathVariable("id") Long id, @ModelAttribute PostRequest postRequest) {
+        
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = userDetails.getUsername();
 
@@ -134,35 +136,25 @@ public class PostController {
             // 삭제 된 이미지 S3 Bucket 에서 삭제 : Handle deleted images
             List<String> deletedImages = postRequest.getDeletedImages();
             if (deletedImages != null) {
-                for (String imageUrl : deletedImages) {
+                for (String delImageUrl : deletedImages) {
                     
                     // Assuming s3utils.deleteImageFromS3 handles the deletion
-                    s3utils.deleteImageFromS3(imageUrl);
+                    s3utils.deleteImageFromS3(delImageUrl);
                     
                     // Also remove from the post's imageUrls list if stored there
-                    post.getImageUrls().remove(imageUrl);
+                    post.getImageUrls().remove(delImageUrl);
                 }
-            }
-
-            // Handle new image URLs if they exist
-            List<String> newImageUrls = postRequest.getImageUrls();
-            if (newImageUrls != null && !newImageUrls.isEmpty()) {
-                // Optionally, upload new images and obtain their URLs
-                // List<String> uploadedImageUrls = s3utils.uploadImages(newImageFiles);
-                post.setImageUrls(newImageUrls);
             }
 
             //제목과 컨텐츠만 업데이트
             Post updatedPost = postService.updatePost(id, postRequest);
-            
-            //새로운 이미지 URL 저장
-            if (postRequest.getImageUrls() != null)
-                updatedPost.setImageUrls(postRequest.getImageUrls());
 
             try {
-                s3utils.fileUpload(postRequest.getFile());
+                
+                // Handle new image URLs if they exist
+                List<MultipartFile> newImageUrls = postRequest.getUptImageUrls();
+                s3utils.fileUpload(newImageUrls, post);
             } catch (Exception e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }     
 
