@@ -18,7 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/lawyer")
 public class LawyerController {
 
     @Autowired
@@ -30,7 +30,7 @@ public class LawyerController {
     @Autowired
     private UserService userService;
 
-    @GetMapping("/lawyer/profile/{id}")
+    @GetMapping("/profile/{id}")
     public LawyerProfile getLawyerProfile(@PathVariable("id") Long id) {
         LawyerProfile profile = lawyerProfileService.getLawyerProfileByUserId(id);
         if (profile == null) {
@@ -39,7 +39,7 @@ public class LawyerController {
         return profile;
     }
 
-    @PutMapping("/lawyer/profile/{id}")
+    @PutMapping("/profile/{id}")
     public LawyerProfile updateLawyerProfile(@PathVariable("id") Long id, @RequestBody LawyerProfile lawyerProfile) {
         User user = getCurrentAuthenticatedUser();
         LawyerProfile existingProfile = lawyerProfileService.getLawyerProfileByUserId(id);
@@ -75,14 +75,14 @@ public class LawyerController {
         return lawyerProfileService.updateLawyerProfile(existingProfile);
     }
 
-    @PostMapping("/lawyer/profile")
+    @PostMapping("/profile")
     public LawyerProfile createLawyerProfile(@RequestBody LawyerProfile lawyerProfile) {
         User user = getCurrentAuthenticatedUser();
         lawyerProfile.setUser(user);
         return lawyerProfileService.createLawyerProfile(lawyerProfile);
     }
 
-    @PostMapping("/lawyer/available-time")
+    @PostMapping("/available-time")
     public LawyerAvailableTime addAvailableTime(@RequestBody AvailableTimeRequest request) {
         User lawyer = getCurrentAuthenticatedUser();
         return lawyerAvailableTimeService.addAvailableTime(
@@ -95,18 +95,18 @@ public class LawyerController {
         );
     }
 
-    @GetMapping("/lawyer/{id}/available-times")
+    @GetMapping("/{id}/available-times")
     public List<LawyerAvailableTime> getAvailableTimesByLawyerId(@PathVariable("id") Long lawyerId) {
         return lawyerAvailableTimeService.getAvailableTimesByLawyerId(lawyerId);
     }
 
-    @GetMapping("/lawyer/available-times")
+    @GetMapping("/available-times")
     public List<LawyerAvailableTime> getAvailableTimes() {
         User lawyer = getCurrentAuthenticatedUser();
         return lawyerAvailableTimeService.getAvailableTimes(lawyer);
     }
 
-    @DeleteMapping("/lawyer/available-time")
+    @DeleteMapping("/available-time")
     public void deleteAvailableTime(@RequestBody AvailableTimeRequest request) {
         User lawyer = getCurrentAuthenticatedUser();
         lawyerAvailableTimeService.deleteAvailableTime(
@@ -127,12 +127,12 @@ public class LawyerController {
         throw new RuntimeException("User not authenticated");
     }
 
-    @GetMapping("/lawyer/count")
+    @GetMapping("/count")
     public long countLawyersWithAvailableTimes() {
         return lawyerAvailableTimeService.countDistinctLawyersWithAvailableTimes();
     }
 
-    @GetMapping("/lawyer/available-lawyers")
+    @GetMapping("/available-lawyers")
     public List<User> getAvailableLawyers() {
         return lawyerAvailableTimeService.getAvailableLawyers();
     }
