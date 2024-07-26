@@ -4,10 +4,15 @@ import java.io.ByteArrayInputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.AI.chatbot.exception.AppException;
@@ -33,26 +38,36 @@ public class S3Utils {
     }
 
     // 다중 파일 업로드
-    public void fileUpload(List<MultipartFile> files, List<String> fileList) throws Exception {
+    public void fileUpload(List<MultipartFile> files) throws Exception {
         
         if(amazonS3 != null) {
+
+            ObjectMetadata metadata = null;
             
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-            Date date = new Date();
-            String today = sdf.format(date);
+            for (MultipartFile file : files) {
+                
+                String originalFilename = file.getOriginalFilename();
+                if (originalFilename == null) 
+                    throw new Exception("파일 이름이 없습니다.");                               // 예외를 던져 에러 리턴
+                
 
-            if(!files.isEmpty()) {
-                createFolder(bucket + "/contact", today);
-            }
+                String fileExtension = StringUtils.getFilenameExtension(originalFilename);
+                String newFilename   = UUID.randomUUID().toString() + "." + fileExtension;
 
-            ObjectMetadata objectMetadata = new ObjectMetadata();
-            for(int i=0; i<files.size(); i++) {
-                objectMetadata.setContentType(files.get(i).getContentType());
-                objectMetadata.setContentLength(files.get(i).getSize());
-                objectMetadata.setHeader("filename", files.get(i).getOriginalFilename());
-                amazonS3.putObject(new PutObjectRequest(bucket + "/contact/" + today, fileList.get(i), files.get(i).getInputStream(), objectMetadata));
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+                Date date    = new Date();
+                String today = sdf.format(date);
+                    
+                String folderPath = "community/" + today + "/";
+                String fileUrl    = "https://"   + bucket + ".s3.amazonaws.com/" + folderPath + newFilename;
+System.out.println("file url : "+ fileUrl);
+                metadata = new ObjectMetadata();
+                metadata.setContentType(file.getContentType());
+                metadata.setContentLength(file.getSize());
+                amazonS3.putObject(bucket, folderPath + newFilename, file.getInputStream(), metadata);
             }
         } else {
+            
             throw new AppException(ErrorType.aws_credentials_fail, null);
         }
     }

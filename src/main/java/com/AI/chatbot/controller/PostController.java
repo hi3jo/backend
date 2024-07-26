@@ -7,9 +7,12 @@ import com.AI.chatbot.repository.PostRepository;
 import com.AI.chatbot.repository.UserRepository;
 import com.AI.chatbot.service.PostService;
 import com.AI.chatbot.util.S3Utils;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,12 +21,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -39,6 +48,12 @@ public class PostController {
 
     @Autowired
     private S3Utils s3utils;
+
+    @Autowired
+    private AmazonS3Client amazonS3Client;
+
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
 
     @GetMapping
     public List<Post> getAllPosts() {
@@ -102,6 +117,7 @@ public class PostController {
         return ResponseEntity.ok(savedPost);
     }
 
+    //게시글 업데이트
     @PutMapping("/{id}")
     public ResponseEntity<Post> updatePost(@PathVariable("id") Long id, @Valid @RequestBody PostRequest postRequest) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -115,21 +131,40 @@ public class PostController {
                 return ResponseEntity.status(403).build();
             }
 
-            //기존 url
-            String imgUrls[] = postService.getImgLists(id);
-            //S3 Bucket에서 이미지 삭제해야 함.
-            /* if (imgUrls != null) {
-                for (String imageUrl : imgUrls) {
+            // 삭제 된 이미지 S3 Bucket 에서 삭제 : Handle deleted images
+            List<String> deletedImages = postRequest.getDeletedImages();
+            if (deletedImages != null) {
+                for (String imageUrl : deletedImages) {
+                    
+                    // Assuming s3utils.deleteImageFromS3 handles the deletion
                     s3utils.deleteImageFromS3(imageUrl);
+                    
+                    // Also remove from the post's imageUrls list if stored there
+                    post.getImageUrls().remove(imageUrl);
                 }
-            } */
+            }
+
+            // Handle new image URLs if they exist
+            List<String> newImageUrls = postRequest.getImageUrls();
+            if (newImageUrls != null && !newImageUrls.isEmpty()) {
+                // Optionally, upload new images and obtain their URLs
+                // List<String> uploadedImageUrls = s3utils.uploadImages(newImageFiles);
+                post.setImageUrls(newImageUrls);
+            }
 
             //제목과 컨텐츠만 업데이트
             Post updatedPost = postService.updatePost(id, postRequest);
             
             //새로운 이미지 URL 저장
-            /* if (postRequest.getImageUrls() != null)
-                updatedPost.setImageUrls(postRequest.getImageUrls()); */
+            if (postRequest.getImageUrls() != null)
+                updatedPost.setImageUrls(postRequest.getImageUrls());
+
+            try {
+                s3utils.fileUpload(postRequest.getFile());
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }     
 
             return ResponseEntity.ok(updatedPost);
         } else {
