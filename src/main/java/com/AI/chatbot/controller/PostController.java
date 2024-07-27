@@ -1,16 +1,10 @@
 package com.AI.chatbot.controller;
 
-import com.AI.chatbot.dto.PostRequest;
-import com.AI.chatbot.model.Post;
-import com.AI.chatbot.model.User;
-import com.AI.chatbot.repository.PostRepository;
-import com.AI.chatbot.repository.UserRepository;
-import com.AI.chatbot.service.PostService;
-import com.AI.chatbot.util.S3Utils;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectMetadata;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -21,18 +15,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import com.AI.chatbot.dto.PostRequest;
+import com.AI.chatbot.model.Post;
+import com.AI.chatbot.model.User;
+import com.AI.chatbot.repository.PostRepository;
+import com.AI.chatbot.repository.UserRepository;
+import com.AI.chatbot.service.PostService;
+import com.AI.chatbot.util.S3Utils;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -48,9 +51,6 @@ public class PostController {
 
     @Autowired
     private S3Utils s3utils;
-
-    @Autowired
-    private AmazonS3Client amazonS3Client;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
