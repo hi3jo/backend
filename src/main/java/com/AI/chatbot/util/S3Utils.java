@@ -2,27 +2,24 @@ package com.AI.chatbot.util;
 
 import java.io.ByteArrayInputStream;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.AI.chatbot.exception.AppException;
 import com.AI.chatbot.exception.AppException.ErrorType;
-import com.AI.chatbot.model.Post;
+import com.AI.chatbot.model.PostImage;
+import com.AI.chatbot.repository.PostImageRepository;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
 
 @Service
 public class S3Utils {
@@ -32,6 +29,9 @@ public class S3Utils {
 
     @Autowired
     private AmazonS3Client amazonS3;
+
+    @Autowired
+    private PostImageRepository postImageRepository;
     
     // 폴더 생성
     public void createFolder(String bucketName, String folderName) {
@@ -40,7 +40,7 @@ public class S3Utils {
     }
 
     // 다중 파일 업로드
-    public void fileUpload(List<MultipartFile> files, Post post) throws Exception {
+    public void fileUpload(List<MultipartFile> files, Long id) throws Exception {
         
         if(amazonS3 != null) {
 
@@ -62,16 +62,21 @@ public class S3Utils {
                     
                 String folderPath = "community/" + today + "/";
                 String fileUrl    = "https://"   + bucket + ".s3.amazonaws.com/" + folderPath + newFilename;
-System.out.println("file url : "+ fileUrl);
+// System.out.println("file url : "+ fileUrl);
                 metadata = new ObjectMetadata();
                 metadata.setContentType(file.getContentType());
                 metadata.setContentLength(file.getSize());
                 amazonS3.putObject(bucket, folderPath + newFilename, file.getInputStream(), metadata);
                 
                 uptImgList.add(fileUrl);
+
+                // PostImage 객체 생성 및 저장
+// System.out.println("post :" + id);
+                PostImage postImage = new PostImage();
+                postImage.setPostId(id); // postId가 아니라 post를 설정
+                postImage.setImageUrl(fileUrl);
+                postImageRepository.save(postImage); // 각각의 PostImage 엔티티를 저장
             }
-            
-            post.setImageUrls(uptImgList);
         } else {
             
             throw new AppException(ErrorType.aws_credentials_fail, null);

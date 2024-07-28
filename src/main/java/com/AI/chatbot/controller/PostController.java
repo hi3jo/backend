@@ -153,7 +153,7 @@ public class PostController {
                 
                 // Handle new image URLs if they exist
                 List<MultipartFile> newImageUrls = postRequest.getUptImageUrls();
-                s3utils.fileUpload(newImageUrls, post);
+                s3utils.fileUpload(newImageUrls, id);
             } catch (Exception e) {
                 e.printStackTrace();
             }     
