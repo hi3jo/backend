@@ -1,7 +1,10 @@
 package com.AI.chatbot.controller;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -24,36 +27,35 @@ public class TextImgAnaController {
 
     private static final Logger logger = LoggerFactory.getLogger(TextImgAnaController.class);
 
-    // 텍스트 이미지 분석 요청을 처리하는 엔드포인트
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadTextImgAna(@RequestParam("file") MultipartFile file, Authentication authentication) {
+    public ResponseEntity<List<Map<String, Object>>> uploadTextImgAna(@RequestParam("file") List<MultipartFile> files, Authentication authentication) {
         try {
-            // JWT 토큰에서 사용자 ID를 가져옵니다.
             String userId = authentication.getName();
+            logger.info("Received upload request: userId={}, number of files={}", userId, files.size());
+            
+            List<Map<String, Object>> aiResponses = textImgAnaService.analyzeTexts(files);
+            List<TextImgAna> savedAnalyses = textImgAnaService.saveTextImgAna(userId, files, aiResponses);
+            
+            List<Map<String, Object>> response = savedAnalyses.stream().map(analysis -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("filename", analysis.getFileName());
+                map.put("answer", analysis.getAnswer());
+                map.put("isPossible", analysis.isPossible());
+                map.put("datetime", analysis.getDatetime());
+                return map;
+            }).collect(Collectors.toList());
 
-            // AI 서버에 파일을 전송하여 분석 결과를 받습니다.
-            Map<String, Object> aiResponse = textImgAnaService.analyzeText(file);
-
-            // 분석 결과를 데이터베이스에 저장합니다.
-            TextImgAna textImgAna = textImgAnaService.saveTextImgAna(userId, file, aiResponse);
-
-            // 저장된 결과를 문자열 형식으로 반환합니다.
-            return ResponseEntity.ok(String.format("분석결과: %s, 증거채택여부: %s, 시간: %s",
-                    textImgAna.getAnswer(),
-                    textImgAna.isPossible() ? "True" : "False",
-                    textImgAna.getDatetime()));
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Failed to upload image or process text: " + e.getMessage());
+            logger.info("Upload completed: userId={}, number of files processed={}", userId, response.size());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Unexpected error occurred: " + e.getMessage());
+            logger.error("Error in uploadTextImgAna: ", e);
+            return ResponseEntity.status(500).body(null);
         }
     }
 
-    // 특정 텍스트 이미지 분석 결과를 반환하는 엔드포인트
     @GetMapping("/{userId}/{textImgAnaId}")
     public ResponseEntity<TextImgAna> getTextImgAna(@PathVariable String userId, @PathVariable Long textImgAnaId) {
         try {
-            // 데이터베이스에서 텍스트 이미지 분석 결과를 조회합니다.
             TextImgAna textImgAna = textImgAnaService.getTextImgAna(userId, textImgAnaId);
             return ResponseEntity.ok(textImgAna);
         } catch (RuntimeException e) {
@@ -61,11 +63,9 @@ public class TextImgAnaController {
         }
     }
 
-    // 특정 이미지 파일을 반환하는 엔드포인트
     @GetMapping("/image/{userId}/{textImgAnaId}")
     public ResponseEntity<byte[]> getImage(@PathVariable String userId, @PathVariable Long textImgAnaId) {
         try {
-            // 데이터베이스에서 이미지 파일을 조회합니다.
             byte[] imageData = textImgAnaService.getImage(userId, textImgAnaId);
             return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_JPEG)
