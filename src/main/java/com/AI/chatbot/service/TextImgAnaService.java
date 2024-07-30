@@ -1,10 +1,20 @@
 package com.AI.chatbot.service;
 
-import com.AI.chatbot.model.TextImgAna;
-import com.AI.chatbot.model.User;
-import com.AI.chatbot.repository.TextImgAnaRepository;
-import com.AI.chatbot.repository.UserRepository;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,21 +25,17 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.core.ParameterizedTypeReference;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.AI.chatbot.model.TextImgAna;
+import com.AI.chatbot.model.User;
+import com.AI.chatbot.repository.TextImgAnaRepository;
+import com.AI.chatbot.repository.UserRepository;
 
 @Service
 public class TextImgAnaService {
+
+    @Value("${ai.server.url}")
+    private String aiServerUrl;
 
     @Autowired
     private TextImgAnaRepository textImgAnaRepository;
@@ -42,7 +48,8 @@ public class TextImgAnaService {
     private static final Logger logger = LoggerFactory.getLogger(TextImgAnaService.class);
 
     public List<Map<String, Object>> analyzeTexts(List<MultipartFile> files) throws IOException {
-        String aiServerUrl = "http://localhost:8000/api/analysis-text/";
+        
+        String url = aiServerUrl + "/api/analysis-text/";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.MULTIPART_FORM_DATA);
@@ -62,7 +69,7 @@ public class TextImgAnaService {
         try {
             logger.info("Sending request to AI server...");
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                aiServerUrl, 
+                url, 
                 HttpMethod.POST, 
                 requestEntity, 
                 new ParameterizedTypeReference<Map<String, Object>>() {}
