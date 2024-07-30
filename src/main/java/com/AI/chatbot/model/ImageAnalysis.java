@@ -29,4 +29,8 @@ public class ImageAnalysis {
     public void setIsPossible(boolean isPossible) {
         this.isPossible = isPossible;
     }
+
+    public String getImageUrl() {
+        return "/path/to/image/" + this.fileName;
+    }
 }

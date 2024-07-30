@@ -9,6 +9,7 @@ import java.util.Optional;  // 올바른 Optional 임포트
 
 @Repository
 public interface ImageAnalysisRepository extends JpaRepository<ImageAnalysis, Long> {
-    List<ImageAnalysis> findByUser_Userid(String userId);
+    List<ImageAnalysis> findByUserId(Long userId);
+
     Optional<ImageAnalysis> findByFileHash(String fileHash);
 }
