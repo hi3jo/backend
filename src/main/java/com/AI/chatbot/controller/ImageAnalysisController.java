@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +17,12 @@ import org.slf4j.LoggerFactory;
 @RequestMapping("/api/imageAnalysis")
 public class ImageAnalysisController {
 
+    private final ImageAnalysisService imageAnalysisService;
+
     @Autowired
-    private ImageAnalysisService imageAnalysisService;
+    public ImageAnalysisController(ImageAnalysisService imageAnalysisService) {
+        this.imageAnalysisService = imageAnalysisService;
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(ImageAnalysisController.class);
 
@@ -54,19 +56,6 @@ public class ImageAnalysisController {
             return ResponseEntity.ok(imageAnalysis);
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(null);
-        }
-    }
-
-    @GetMapping("/image/{userId}/{imageAnalysisId}")
-    public ResponseEntity<byte[]> getImage(@PathVariable String userId, @PathVariable Long imageAnalysisId) {
-        try {
-            byte[] imageData = imageAnalysisService.getImage(userId, imageAnalysisId);
-            return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_JPEG)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + imageAnalysisId + "\"")
-                .body(imageData);
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body(null);
         }
     }
 }
