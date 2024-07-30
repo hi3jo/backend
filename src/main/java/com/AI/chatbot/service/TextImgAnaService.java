@@ -1,35 +1,30 @@
 package com.AI.chatbot.service;
 
+import com.AI.chatbot.model.TextImgAna;
+import com.AI.chatbot.model.User;
+import com.AI.chatbot.repository.TextImgAnaRepository;
+import com.AI.chatbot.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.beans.factory.annotation.Value;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
-
-import com.AI.chatbot.model.TextImgAna;
-import com.AI.chatbot.model.User;
-import com.AI.chatbot.repository.TextImgAnaRepository;
-import com.AI.chatbot.repository.UserRepository;
 
 @Service
 public class TextImgAnaService {
@@ -52,7 +47,7 @@ public class TextImgAnaService {
         String url = aiServerUrl + "/api/analysis-text/";
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(org.springframework.http.MediaType.MULTIPART_FORM_DATA);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         for (MultipartFile file : files) {
@@ -83,6 +78,9 @@ public class TextImgAnaService {
             }
             logger.error("AI 서버 응답이 예상한 형식이 아님: {}", responseBody);
             throw new IOException("Failed to get a valid response from AI server.");
+        } catch (HttpServerErrorException e) {
+            logger.error("AI 서버에서 500 에러 발생: {}", e.getResponseBodyAsString());
+            throw new IOException("AI server returned a 500 error", e);
         } catch (Exception e) {
             logger.error("AI 서버와 통신 중 오류 발생: {}", e.getMessage());
             logger.error("Exception stack trace: ", e);
@@ -119,7 +117,19 @@ public class TextImgAnaService {
             TextImgAna textImgAna = new TextImgAna();
             textImgAna.setFileName(originalFileName);
             textImgAna.setFilePath(filePath.toString());
-            textImgAna.setAnswer((String) aiResponse.get("answer"));
+            
+            // AI 응답 처리 수정
+            Map<String, Object> answer = (Map<String, Object>) aiResponse.get("answer");
+            if (answer == null) {
+                logger.error("AI response does not contain 'answer' key: {}", aiResponse);
+                throw new IOException("Invalid AI response format");
+            }
+            String fullAnswer = String.format("대화내용: %s\n성적표현: %s\n부적절관계: %s",
+                answer.get("대화내용"),
+                answer.get("성적표현"),
+                answer.get("부적절관계"));
+            textImgAna.setAnswer(fullAnswer);
+
             textImgAna.setUser(user);
             textImgAna.setIsPossible((Boolean) aiResponse.get("isPossible"));
             textImgAna.setDatetime(LocalDateTime.now());
