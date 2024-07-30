@@ -6,6 +6,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +23,11 @@ import com.AI.chatbot.model.PostImage;
 import com.AI.chatbot.repository.PostImageRepository;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
+
+import java.io.IOException;
 
 @Service
 public class S3Utils {
@@ -134,5 +142,43 @@ public class S3Utils {
         
         fullPath = bucketName + "/" + folderNm + "/" + creatInfo;
         return fullPath;
+    }
+
+    public String uploadFile(MultipartFile file) throws Exception {
+        if (amazonS3 != null) {
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null) 
+                throw new Exception("파일 이름이 없습니다.");
+
+            String fileExtension = StringUtils.getFilenameExtension(originalFilename);
+            String newFilename = UUID.randomUUID().toString() + "." + fileExtension;
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+            String today = sdf.format(new Date());
+
+            String folderPath = "community/" + today + "/";
+            String fileUrl = "https://" + bucket + ".s3.amazonaws.com/" + folderPath + newFilename;
+
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType(file.getContentType());
+            metadata.setContentLength(file.getSize());
+            amazonS3.putObject(bucket, folderPath + newFilename, file.getInputStream(), metadata);
+
+            return fileUrl;
+        } else {
+            throw new AppException(ErrorType.aws_credentials_fail, null);
+        }
+    }
+
+    public String readFileFromS3(String fileUrl) throws IOException {
+        String key = extractKeyFromUrl(fileUrl);
+        S3Object s3Object = amazonS3.getObject(new GetObjectRequest(bucket, key));
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(s3Object.getObjectContent(), StandardCharsets.UTF_8))) {
+            return reader.lines().collect(Collectors.joining("\n"));
+        }
+    }
+
+    public String getBucket() {
+        return bucket;
     }
 }
