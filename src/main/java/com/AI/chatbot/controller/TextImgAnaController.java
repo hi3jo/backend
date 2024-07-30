@@ -39,7 +39,18 @@ public class TextImgAnaController {
             List<Map<String, Object>> response = savedAnalyses.stream().map(analysis -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("filename", analysis.getFileName());
-                map.put("answer", analysis.getAnswer());
+                
+                // answer 문자열을 파싱하여 개별 필드로 분리
+                String[] answerParts = analysis.getAnswer().split("\n");
+                Map<String, String> parsedAnswer = new HashMap<>();
+                for (String part : answerParts) {
+                    String[] keyValue = part.split(": ", 2);
+                    if (keyValue.length == 2) {
+                        parsedAnswer.put(keyValue[0], keyValue[1]);
+                    }
+                }
+                map.put("answer", parsedAnswer);
+                
                 map.put("isPossible", analysis.isPossible());
                 map.put("datetime", analysis.getDatetime());
                 return map;
@@ -54,25 +65,30 @@ public class TextImgAnaController {
     }
 
     @GetMapping("/{userId}/{textImgAnaId}")
-    public ResponseEntity<TextImgAna> getTextImgAna(@PathVariable String userId, @PathVariable Long textImgAnaId) {
+    public ResponseEntity<Map<String, Object>> getTextImgAna(@PathVariable String userId, @PathVariable Long textImgAnaId) {
         try {
             TextImgAna textImgAna = textImgAnaService.getTextImgAna(userId, textImgAnaId);
-            return ResponseEntity.ok(textImgAna);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("filename", textImgAna.getFileName());
+            
+            // answer 문자열을 파싱하여 개별 필드로 분리
+            String[] answerParts = textImgAna.getAnswer().split("\n");
+            Map<String, String> parsedAnswer = new HashMap<>();
+            for (String part : answerParts) {
+                String[] keyValue = part.split(": ", 2);
+                if (keyValue.length == 2) {
+                    parsedAnswer.put(keyValue[0], keyValue[1]);
+                }
+            }
+            response.put("answer", parsedAnswer);
+            
+            response.put("isPossible", textImgAna.isPossible());
+            response.put("datetime", textImgAna.getDatetime());
+            
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(null);
-        }
-    }
-
-    @GetMapping("/image/{userId}/{textImgAnaId}")
-    public ResponseEntity<byte[]> getImage(@PathVariable String userId, @PathVariable Long textImgAnaId) {
-        try {
-            byte[] imageData = textImgAnaService.getImage(userId, textImgAnaId);
-            return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_JPEG)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + textImgAnaId + "\"")
-                .body(imageData);
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body(null);
         }
     }
 }
