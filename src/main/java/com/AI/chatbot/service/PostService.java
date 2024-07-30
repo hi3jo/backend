@@ -117,4 +117,11 @@ public class PostService {
     public int getCommentCount(Long postId) {
         return commentRepository.findByPostId(postId).size();
     }
+
+    //게시글 업데이트 시 이미지 경로를 얻어서 삭제 처리.
+    public String[] getImgLists(Long postId) {
+        
+        Post post = postRepository.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
+        return post.getImageUrls().toArray(new String[0]);
+    }
 }

@@ -1,14 +1,12 @@
 package com.AI.chatbot.controller;
 
-import com.AI.chatbot.dto.PostRequest;
-import com.AI.chatbot.model.Post;
-import com.AI.chatbot.model.User;
-import com.AI.chatbot.repository.PostRepository;
-import com.AI.chatbot.repository.UserRepository;
-import com.AI.chatbot.service.PostService;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,12 +15,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import com.AI.chatbot.dto.PostRequest;
+import com.AI.chatbot.model.Post;
+import com.AI.chatbot.model.User;
+import com.AI.chatbot.repository.PostRepository;
+import com.AI.chatbot.repository.UserRepository;
+import com.AI.chatbot.service.PostService;
+import com.AI.chatbot.util.S3Utils;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -35,6 +48,12 @@ public class PostController {
 
     @Autowired
     private PostRepository postRepository;
+
+    @Autowired
+    private S3Utils s3utils;
+
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
 
     @GetMapping
     public List<Post> getAllPosts() {
@@ -98,8 +117,11 @@ public class PostController {
         return ResponseEntity.ok(savedPost);
     }
 
+    //게시글 업데이트
     @PutMapping("/{id}")
-    public ResponseEntity<Post> updatePost(@PathVariable("id") Long id, @Valid @RequestBody PostRequest postRequest) {
+  //public ResponseEntity<Post> updatePost(@PathVariable("id") Long id, @Valid @RequestBody PostRequest postRequest) {
+    public ResponseEntity<Post> updatePost(@PathVariable("id") Long id, @ModelAttribute PostRequest postRequest) {
+        
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = userDetails.getUsername();
 
@@ -110,7 +132,32 @@ public class PostController {
             if (!post.getUser().getUserid().equals(username)) {
                 return ResponseEntity.status(403).build();
             }
+
+            // 삭제 된 이미지 S3 Bucket 에서 삭제 : Handle deleted images
+            List<String> deletedImages = postRequest.getDeletedImages();
+            if (deletedImages != null) {
+                for (String delImageUrl : deletedImages) {
+                    
+                    // Assuming s3utils.deleteImageFromS3 handles the deletion
+                    s3utils.deleteImageFromS3(delImageUrl);
+                    
+                    // Also remove from the post's imageUrls list if stored there
+                    post.getImageUrls().remove(delImageUrl);
+                }
+            }
+
+            //제목과 컨텐츠만 업데이트
             Post updatedPost = postService.updatePost(id, postRequest);
+
+            try {
+                
+                // Handle new image URLs if they exist
+                List<MultipartFile> newImageUrls = postRequest.getUptImageUrls();
+                s3utils.fileUpload(newImageUrls, id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }     
+
             return ResponseEntity.ok(updatedPost);
         } else {
             return ResponseEntity.notFound().build();
@@ -118,7 +165,8 @@ public class PostController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> deletePost(   @PathVariable("id") Long id
+                                            , @RequestParam(value = "imageUrls", required = false) List<String> imageUrls) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = userDetails.getUsername();
 
@@ -130,6 +178,13 @@ public class PostController {
                 return ResponseEntity.status(403).build();
             }
             postService.deletePost(id);
+
+            //S3 Bucket에서 이미지 삭제해야 함.
+            if (imageUrls != null) {
+                for (String imageUrl : imageUrls) {
+                    s3utils.deleteImageFromS3(imageUrl);
+                }
+            }
             return ResponseEntity.noContent().build();
         } else {
             return ResponseEntity.notFound().build();
