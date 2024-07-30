@@ -1,4 +1,4 @@
-# Base image with OpenJDK 17 ..
+# Base image with OpenJDK 17 .., 7월 30일 수정
 FROM openjdk:17-jdk-slim
 
 # The application's JAR file
