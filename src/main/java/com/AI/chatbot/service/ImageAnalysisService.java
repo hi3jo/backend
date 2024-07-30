@@ -5,6 +5,7 @@ import com.AI.chatbot.model.User;
 import com.AI.chatbot.repository.ImageAnalysisRepository;
 import com.AI.chatbot.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -30,6 +31,9 @@ import org.slf4j.LoggerFactory;
 @Service
 public class ImageAnalysisService {
 
+    @Value("${ai.server.url}")
+    private String aiServerUrl;
+
     @Autowired
     private ImageAnalysisRepository imageAnalysisRepository;
 
@@ -41,7 +45,8 @@ public class ImageAnalysisService {
     private static final Logger logger = LoggerFactory.getLogger(ImageAnalysisService.class);
 
     public Map<String, Object> analyzeImage(MultipartFile file) throws IOException {
-        String aiServerUrl = "http://localhost:8000/api/analysis-image/";
+        
+        String url = aiServerUrl +"/api/analysis-image/";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.MULTIPART_FORM_DATA);
@@ -59,7 +64,7 @@ public class ImageAnalysisService {
         try {
             logger.info("Sending request to AI server...");
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                aiServerUrl, 
+                url, 
                 HttpMethod.POST, 
                 requestEntity, 
                 new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
