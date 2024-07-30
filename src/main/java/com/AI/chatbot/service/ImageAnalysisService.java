@@ -5,6 +5,7 @@ import com.AI.chatbot.model.User;
 import com.AI.chatbot.repository.ImageAnalysisRepository;
 import com.AI.chatbot.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +23,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -31,12 +31,11 @@ import org.slf4j.LoggerFactory;
 @Service
 public class ImageAnalysisService {
 
-    private ImageAnalysisRepository imageAnalysisRepository;
+    @Value("${ai.server.url}")
+    private String aiServerUrl;
 
     @Autowired
-    public ImageAnalysisService(ImageAnalysisRepository imageAnalysisRepository) {
-        this.imageAnalysisRepository = imageAnalysisRepository;
-    }
+    private ImageAnalysisRepository imageAnalysisRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -46,7 +45,8 @@ public class ImageAnalysisService {
     private static final Logger logger = LoggerFactory.getLogger(ImageAnalysisService.class);
 
     public Map<String, Object> analyzeImage(MultipartFile file) throws IOException {
-        String aiServerUrl = "http://localhost:8000/api/analysis-image/";
+        
+        String url = aiServerUrl +"/api/analysis-image/";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.MULTIPART_FORM_DATA);
@@ -64,7 +64,7 @@ public class ImageAnalysisService {
         try {
             logger.info("Sending request to AI server...");
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                aiServerUrl, 
+                url, 
                 HttpMethod.POST, 
                 requestEntity, 
                 new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
@@ -143,18 +143,8 @@ public class ImageAnalysisService {
             .orElseThrow(() -> new RuntimeException("Image analysis not found"));
     }
 
-    public byte[] getImage(Long userId, Long imageAnalysisId) throws IOException {
-        Optional<ImageAnalysis> imageAnalysisOpt = imageAnalysisRepository.findById(imageAnalysisId);
-        if (imageAnalysisOpt.isPresent()) {
-            ImageAnalysis imageAnalysis = imageAnalysisOpt.get();
-            if (imageAnalysis.getUser().getId().equals(userId)) {
-                Path path = Paths.get(imageAnalysis.getFilePath());
-                return Files.readAllBytes(path);
-            } else {
-                throw new RuntimeException("User ID does not match");
-            }
-        } else {
-            throw new RuntimeException("Image analysis not found");
-        }
-    }    
+    public byte[] getImage(String userId, Long imageAnalysisId) throws IOException {
+        ImageAnalysis imageAnalysis = getImageAnalysis(userId, imageAnalysisId);
+        return Files.readAllBytes(Paths.get(imageAnalysis.getFilePath()));
+    }
 }
