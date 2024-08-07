@@ -37,59 +37,58 @@ public class ImgUploadController {
 
     @PostConstruct
     public void init() {
+        
         File uploadDirFile = new File(uploadDir);
-        if (!uploadDirFile.exists()) {
+        if (!uploadDirFile.exists())
             uploadDirFile.mkdirs();
-        }
     }
 
     @PostMapping
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
         
-        if (file.isEmpty()) {
+        if (file.isEmpty())
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("파일 업로드 실패: 빈 파일");
-        }
 
         try {
             
             // 원본 파일명 가져오기
             String originalFilename = file.getOriginalFilename();
-            if (originalFilename == null) {
+            if (originalFilename == null)
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("파일 업로드 실패: 파일 이름 없음");
-            }
+
 
             // 파일명 처리 (UUID를 이용한 고유한 파일명 생성)
             String fileExtension = StringUtils.getFilenameExtension(originalFilename);
             String newFilename   = UUID.randomUUID().toString() + "." + fileExtension;
 
             /*
-                // 프로젝트 내 파일 저장 경로 설정    
+                // 1.프로젝트 내 파일 저장 경로 설정    
                 Path path = Paths.get(uploadDir + File.separator + newFilename);
 
-                // 파일 저장
+                // 2.파일 저장
                 Files.write(path, file.getBytes());
 
-                // 파일 URL 반환 (필요 시 URL 형식 조정)
+                // 3.파일 URL 반환 (필요 시 URL 형식 조정)
                 return ResponseEntity.ok("/uploads/" + newFilename);
             */
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
 		    Date date    = new Date();
 		    String today = sdf.format(date);
-                
+
             String folderPath = "community/" + today + "/";
-            String fileUrl    = "https://" + bucket + ".s3.amazonaws.com/" + folderPath + newFilename;
+            String fileUrl    = "https://"   + bucket + ".s3.amazonaws.com/" + folderPath + newFilename;
 
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentType(file.getContentType());
             metadata.setContentLength(file.getSize());
             amazonS3Client.putObject(bucket, folderPath + newFilename, file.getInputStream(), metadata);
-            
-            System.out.println("file url : "+ fileUrl);
-            return ResponseEntity.ok(fileUrl);
 
+//System.out.println("file url : "+ fileUrl);
+            return ResponseEntity.ok(fileUrl);
         } catch (IOException e) {
-            e.printStackTrace();  // 에러 로그 출력
+
+            e.printStackTrace();                                                                                            // 에러 로그 출력
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("파일 업로드 실패: " + e.getMessage());
         }
     }
